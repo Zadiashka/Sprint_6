@@ -16,3 +16,7 @@ build/
 *.egg-info/
 pip-wheel-metadata/
 *.log
+
+# Allure
+allure-results/
+allure-report/
