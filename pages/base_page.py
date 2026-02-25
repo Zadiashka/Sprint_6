@@ -1,54 +1,78 @@
-from typing import Optional, Tuple, List
+# pages/base_page.py
+import logging
+from typing import List, Optional, Tuple
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 
-
-Locator = Tuple[By, str]
-
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 class BasePage:
-    def __init__(self, driver: WebDriver, timeout: int = 10):
+    def __init__(self, driver: WebDriver, default_timeout: int = 8):
         self._driver = driver
-        self._timeout = timeout
-        self._wait = WebDriverWait(driver, timeout)
+        self._timeout = default_timeout
 
     def open(self, url: str) -> None:
         self._driver.get(url)
 
-    def find(self, locator: Locator, timeout: Optional[int] = None):
-        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
+    def find(self, locator: Tuple, timeout: Optional[int] = None) -> WebElement:
+        wait = WebDriverWait(self._driver, timeout or self._timeout)
         return wait.until(EC.presence_of_element_located(locator))
 
-    def find_all(self, locator: Locator, timeout: Optional[int] = None) -> List:
-        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
-        return wait.until(EC.presence_of_all_elements_located(locator))
+    def find_all(self, locator: Tuple, timeout: Optional[int] = None) -> List[WebElement]:
+        wait = WebDriverWait(self._driver, timeout or self._timeout)
+        wait.until(lambda d: d.find_elements(*locator))
+        return self._driver.find_elements(*locator)
 
-    def click(self, locator: Locator, timeout: Optional[int] = None) -> None:
-        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
-        wait.until(EC.element_to_be_clickable(locator))
-        el = self.find(locator, timeout)
-        el.click()
-
-    def fill(self, locator: Locator, text: str, timeout: Optional[int] = None) -> None:
-        el = self.find(locator, timeout)
-        el.clear()
-        el.send_keys(text)
-
-    def get_text(self, locator: Locator, timeout: Optional[int] = None) -> str:
-        el = self.find(locator, timeout)
-        return el.text
-
-    def wait_visible(self, locator: Locator, timeout: Optional[int] = None):
-        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
+    def wait_visible(self, locator: Tuple, timeout: Optional[int] = None) -> WebElement:
+        wait = WebDriverWait(self._driver, timeout or self._timeout)
         return wait.until(EC.visibility_of_element_located(locator))
 
-    def wait_invisible(self, locator: Locator, timeout: Optional[int] = None):
-        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
-        return wait.until(EC.invisibility_of_element_located(locator))
+    def click(self, locator: Tuple, timeout: Optional[int] = None) -> None:
+        wait = WebDriverWait(self._driver, timeout or self._timeout)
+        el = wait.until(EC.element_to_be_clickable(locator))
+        self.click_element(el)
 
-    @property
-    def current_url(self) -> str:
-        return self._driver.current_url
+    def click_element(self, el: WebElement) -> None:
+        try:
+            self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+        except Exception:
+            pass
+        try:
+            ActionChains(self._driver).move_to_element(el).pause(0.05).click(el).perform()
+            return
+        except Exception:
+            pass
+        try:
+            el.click()
+            return
+        except Exception:
+            pass
+        try:
+            self._driver.execute_script("arguments[0].click();", el)
+            return
+        except Exception:
+            logger.exception("All click attempts failed")
+            raise
+
+    def fill(self, locator: Tuple, text: str, timeout: Optional[int] = None) -> None:
+        el = self.find(locator, timeout=timeout)
+        try:
+            el.clear()
+        except Exception:
+            pass
+        el.send_keys(text)
+
+    def save_artifacts(self, name_prefix: str) -> None:
+        try:
+            self._driver.save_screenshot(f"{name_prefix}.png")
+        except Exception:
+            logger.debug("Failed to save screenshot", exc_info=True)
+        try:
+            with open(f"{name_prefix}.html", "w", encoding="utf-8") as f:
+                f.write(self._driver.page_source)
+        except Exception:
+            logger.debug("Failed to save page source", exc_info=True)

@@ -1,6 +1,6 @@
+# tests/test_smoke.py
 import pytest
 from pages.main_page import MainPage
-
 
 @pytest.mark.usefixtures("driver")
 class TestSmoke:
@@ -11,6 +11,5 @@ class TestSmoke:
             main.accept_cookies()
         except Exception:
             pass
-        # проверяем видимость кнопок заказа
         main.wait_visible(MainPage.TOP_ORDER, timeout=5)
         main.wait_visible(MainPage.BOTTOM_ORDER, timeout=5)

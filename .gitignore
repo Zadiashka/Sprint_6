@@ -1,18 +1,23 @@
-﻿venv/
+﻿# Python
 __pycache__/
 *.pyc
-.idea/
-.vscode/
-.pytest_cache/
-.env
-.env.*
-.DS_Store
-node_modules/
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+
+# Pytest
+.cache/
+
+# Allure
 allure-results/
 allure-report/
-coverage/
-dist/
-build/
-*.egg-info/
-pip-wheel-metadata/
-*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

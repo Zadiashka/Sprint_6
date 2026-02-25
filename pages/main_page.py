@@ -1,6 +1,6 @@
+# pages/main_page.py
 from selenium.webdriver.common.by import By
 from .base_page import BasePage
-
 
 class MainPage(BasePage):
     URL = "https://qa-scooter.praktikum-services.ru"
@@ -13,6 +13,7 @@ class MainPage(BasePage):
 
     def open_main(self) -> None:
         self.open(self.URL)
+        self.find(self.LOGO_YANDEX)
 
     def click_top_order(self) -> None:
         self.click(self.TOP_ORDER)
@@ -21,12 +22,10 @@ class MainPage(BasePage):
         self.click(self.BOTTOM_ORDER)
 
     def accept_cookies(self) -> None:
-        # если кнопка есть — кликнем, иначе выбросит TimeoutException
-        self.click(self.COOKIE_BUTTON)
-
-    def is_questions_section_visible(self) -> bool:
         try:
-            self.wait_visible(self.QUESTIONS_SECTION, timeout=3)
-            return True
+            self.click(self.COOKIE_BUTTON)
         except Exception:
-            return False
+            pass
+
+    def open_questions_section(self) -> None:
+        self.wait_visible(self.QUESTIONS_SECTION, timeout=6)
