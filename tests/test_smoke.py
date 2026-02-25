@@ -1,4 +1,4 @@
-# tests/test_smoke.py
+
 import pytest
 from pages.main_page import MainPage
 

@@ -1,4 +1,4 @@
-# pages/base_page.py
+
 import logging
 from typing import List, Optional, Tuple
 from selenium.webdriver.remote.webdriver import WebDriver

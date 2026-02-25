@@ -16,7 +16,7 @@ class TestOrder:
         except Exception:
             pass
 
-        # точка входа
+        #
         getattr(main, entry_action)()
 
         order = OrderPage(driver)
@@ -27,12 +27,12 @@ class TestOrder:
         order.fill_phone(data["phone"])
         order.click_next()
 
-        # дата — исключительно кликом по календарю
+        
         order.set_date(data.get("date_day", 23))
         order.choose_rental_days(data["rental_days"])
         order.choose_color(data["color"])
         order.fill_comment(data["comment"])
 
-        # отправка и проверка финальной модалки успеха
+        
         order.submit_order()
         assert order.is_confirmation_modal_visible(timeout=2) or True, "Ожидалась модалка подтверждения (проверка финального текста выполнена в submit_order)"
