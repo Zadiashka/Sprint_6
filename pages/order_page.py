@@ -1,12 +1,7 @@
+# pages/order_page.py
+import allure
 from typing import Optional, List
-from time import sleep, time
-from datetime import datetime
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from .base_page import BasePage
 
@@ -30,213 +25,112 @@ class OrderPage(BasePage):
     CONFIRM_YES = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 button:nth-child(2), button.Button_Button__ra12g.Button_Middle__1CSJM")
     ORDER_SUCCESS_TEXT = (By.CSS_SELECTOR, ".Order_ModalHeader__3FDaJ, .Order_Modal__title, .Order_ModalHeader")
 
+    @allure.step("Fill name: {name}")
     def fill_name(self, name: str) -> None:
         self.fill(self.NAME, name)
 
+    @allure.step("Fill surname: {surname}")
     def fill_surname(self, surname: str) -> None:
         self.fill(self.SURNAME, surname)
 
+    @allure.step("Fill address: {address}")
     def fill_address(self, address: str) -> None:
         self.fill(self.ADDRESS, address)
 
+    @allure.step("Select metro: {metro}")
     def select_metro(self, metro: str, timeout: float = 10.0) -> None:
         if not metro:
             raise ValueError("metro must be provided")
         input_el = self.find(self.METRO_INPUT, timeout=4)
-        try:
-            self.click_element(input_el)
-        except Exception:
-            try:
-                input_el.click()
-            except Exception:
-                pass
+        self.click_element(input_el)
         try:
             input_el.clear()
         except Exception:
             pass
-        for ch in metro[:min(len(metro), 20)]:
-            try:
-                input_el.send_keys(ch)
-            except Exception:
-                try:
-                    self._driver.execute_script(
-                        "arguments[0].value += arguments[1]; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));",
-                        input_el, ch
-                    )
-                except Exception:
-                    pass
-            sleep(0.06)
-        deadline = time() + timeout
-        while time() < deadline:
-            try:
-                options = self.find_all(self.METRO_OPTIONS, timeout=1)
-            except Exception:
-                options = []
-            if options:
-                chosen = None
-                for opt in options:
-                    try:
-                        txt = (opt.text or "").strip()
-                        if txt and txt.lower() == metro.lower():
-                            chosen = opt
-                            break
-                    except Exception:
-                        continue
-                if not chosen:
-                    for opt in options:
-                        try:
-                            txt = (opt.text or "").strip()
-                            if txt and metro.lower() in txt.lower():
-                                chosen = opt
-                                break
-                        except Exception:
-                            continue
-                if not chosen:
-                    chosen = options[0]
-                try:
-                    self.click_element(chosen)
-                except Exception:
-                    try:
-                        chosen.click()
-                    except Exception:
-                        try:
-                            self._driver.execute_script("arguments[0].click();", chosen)
-                        except Exception:
-                            pass
-                try:
-                    val = self._driver.execute_script("return arguments[0].value||'';", input_el)
-                    if val and metro.lower() in val.lower():
-                        sleep(0.06)
-                        return
-                except Exception:
-                    return
-            try:
-                input_el.send_keys(Keys.ARROW_DOWN)
-                input_el.send_keys(Keys.ENTER)
-                sleep(0.08)
-                val = self._driver.execute_script("return arguments[0].value||'';", input_el)
-                if val and metro.lower() in val.lower():
-                    return
-            except Exception:
-                pass
-            sleep(0.12)
+        input_el.send_keys(metro)
+        def _options_present(d):
+            opts = d.find_elements(*self.METRO_OPTIONS)
+            return opts if opts else False
+        opts = self.wait_for(_options_present, timeout=timeout)
+        chosen = None
+        for opt in opts:
+            txt = (opt.text or "").strip()
+            if txt and txt.lower() == metro.lower():
+                chosen = opt
+                break
+        if not chosen:
+            for opt in opts:
+                txt = (opt.text or "").strip()
+                if txt and metro.lower() in txt.lower():
+                    chosen = opt
+                    break
+        if not chosen:
+            chosen = opts[0]
+        # ensure visible and clickable
         try:
-            self.save_artifacts("metro_failure")
+            self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", chosen)
         except Exception:
             pass
-        raise TimeoutException(f"Не удалось выбрать опцию метро для префикса '{metro}'")
+        self.click_element(chosen)
 
+    @allure.step("Fill phone: {phone}")
     def fill_phone(self, phone: str) -> None:
         self.fill(self.PHONE, phone)
 
-    def click_next(self, timeout: float = 8.0) -> None:
+    @allure.step("Click next")
+    def click_next(self) -> None:
         self.click(self.NEXT_BUTTON)
-        WebDriverWait(self._driver, timeout).until(
-            lambda d: d.find_elements(*self.DATE_INPUT) or d.find_elements(*self.DATE_PICKER_CONTAINER)
-        )
+        def _date_ready(d):
+            if d.find_elements(*self.DATE_INPUT):
+                return True
+            if d.find_elements(*self.DATE_PICKER_CONTAINER):
+                return True
+            return False
+        self.wait_for(_date_ready, timeout=8)
 
+    @allure.step("Set date by clicking day {day}")
     def set_date_by_click(self, day: int, timeout: float = 8.0) -> None:
         try:
             date_field = self.find(self.DATE_INPUT, timeout=3)
-            try:
-                self.click_element(date_field)
-            except Exception:
-                try:
-                    date_field.click()
-                except Exception:
-                    pass
+            self.click_element(date_field)
         except Exception:
-            try:
-                WebDriverWait(self._driver, 2).until(
-                    lambda d: d.find_elements(*self.DATE_PICKER_CONTAINER)
-                )
-            except Exception:
-                try:
-                    self.save_artifacts("date_field_not_found")
-                except Exception:
-                    pass
-                raise TimeoutException("Поле даты/datepicker не найдено на странице")
-        try:
-            WebDriverWait(self._driver, 4).until(
-                lambda d: d.find_elements(*self.DATE_PICKER_CONTAINER)
-            )
-        except Exception:
-            pass
-        deadline = time() + timeout
-        while time() < deadline:
-            candidates: List[WebElement] = []
+            def _picker_present(d):
+                return d.find_elements(*self.DATE_PICKER_CONTAINER) or False
+            self.wait_for(_picker_present, timeout=2)
+        def _find_and_click(d):
             for sel in self.DATE_DAY_SELECTORS:
-                try:
-                    elems = self._driver.find_elements(By.CSS_SELECTOR, sel)
-                except Exception:
-                    elems = []
-                if elems:
-                    candidates.extend(elems)
-            if candidates:
-                for e in candidates:
-                    try:
-                        txt = (e.text or "").strip()
-                        cls = (e.get_attribute("class") or "")
-                    except Exception:
-                        continue
+                elems = d.find_elements(By.CSS_SELECTOR, sel)
+                for e in elems:
+                    txt = (e.text or "").strip()
+                    cls = (e.get_attribute("class") or "")
                     if not txt:
                         continue
                     if txt == str(int(day)) and "disabled" not in cls and "outside" not in cls and "react-datepicker__day--outside-month" not in cls:
-                        clicked = False
                         try:
-                            self.click_element(e)
-                            clicked = True
+                            d.execute_script("arguments[0].scrollIntoView({block:'center'});", e)
+                        except Exception:
+                            pass
+                        try:
+                            e.click()
+                            return True
                         except Exception:
                             try:
-                                e.click()
-                                clicked = True
+                                d.execute_script("arguments[0].click();", e)
+                                return True
                             except Exception:
-                                try:
-                                    self._driver.execute_script("arguments[0].click();", e)
-                                    clicked = True
-                                except Exception:
-                                    clicked = False
-                        if clicked:
-                            try:
-                                self._driver.execute_script("document.body.click();")
-                            except Exception:
-                                pass
-                            sleep(0.12)
-                            try:
-                                el_check = self.find(self.DATE_INPUT, timeout=1)
-                                val = self._driver.execute_script("return arguments[0].value||'';", el_check)
-                                if val and str(int(day)) in val:
-                                    return
-                                try:
-                                    self._driver.execute_script("arguments[0].click();", e)
-                                except Exception:
-                                    try:
-                                        e.click()
-                                    except Exception:
-                                        pass
-                                try:
-                                    self._driver.execute_script("document.body.click();")
-                                except Exception:
-                                    pass
-                                sleep(0.12)
-                                try:
-                                    val2 = self._driver.execute_script("return arguments[0].value||'';", el_check)
-                                    if val2 and str(int(day)) in val2:
-                                        return
-                                except Exception:
-                                    pass
-                            except Exception:
-                                return
-            sleep(0.12)
+                                continue
+            return False
         try:
-            self.save_artifacts("date_click_failure")
+            self.wait_for(_find_and_click, timeout=timeout)
         except Exception:
-            pass
-        raise TimeoutException(f"Не удалось выбрать дату кликом: {day}")
+            self.save_artifacts("date_click_failure")
+            raise TimeoutException(f"Не удалось выбрать дату кликом: {day}")
 
+    @allure.step("Set date {day}")
     def set_date(self, day: int, timeout: float = 8.0) -> None:
         self.set_date_by_click(day, timeout=timeout)
 
+    @allure.step("Choose rental days: {days_text}")
     def choose_rental_days(self, days_text: str) -> None:
         self.click(self.RENT_TERM_DROPDOWN)
         options = self.find_all(self.RENT_TERM_OPTION, timeout=5)
@@ -247,6 +141,7 @@ class OrderPage(BasePage):
         if options:
             self.click_element(options[0])
 
+    @allure.step("Choose color: {color_text}")
     def choose_color(self, color_text: str) -> None:
         labels = self.find_all(self.COLOR_CHECKBOXES, timeout=3)
         for lbl in labels:
@@ -256,48 +151,46 @@ class OrderPage(BasePage):
         if labels:
             self.click_element(labels[0])
 
+    @allure.step("Fill comment")
     def fill_comment(self, comment: str) -> None:
         if comment:
             self.fill(self.COMMENT_INPUT, comment)
 
+    @allure.step("Submit order (open confirm modal)")
     def submit_order(self) -> None:
-        try:
-            self.click(self.ORDER_BUTTON)
-        except Exception:
+        # click order button and wait for confirmation modal or confirm button
+        self.click(self.ORDER_BUTTON)
+        def _confirm_present(d):
+            if d.find_elements(*self.CONFIRM_MODAL):
+                return True
+            if d.find_elements(*self.CONFIRM_YES):
+                return True
             try:
-                btn = self.find(self.ORDER_BUTTON, timeout=1)
-                try:
-                    self._driver.execute_script("arguments[0].click();", btn)
-                except Exception:
-                    pass
-            except Exception:
-                try:
-                    self.save_artifacts("order_click_failure_no_raise")
-                except Exception:
-                    pass
-        try:
-            WebDriverWait(self._driver, 2).until(
-                lambda d: d.find_elements(*self.CONFIRM_MODAL) or d.find_elements(*self.CONFIRM_YES) or d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
-            )
-        except Exception:
-            pass
-
-    def confirm_modal_yes(self) -> None:
-        try:
-            self.click(self.CONFIRM_YES)
-        except Exception:
-            try:
-                btn = self.find(self.CONFIRM_YES, timeout=1)
-                try:
-                    self._driver.execute_script("arguments[0].click();", btn)
-                except Exception:
-                    pass
+                els = d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
+                if els:
+                    return True
             except Exception:
                 pass
+            return False
+        try:
+            self.wait_for(_confirm_present, timeout=6)
+        except Exception:
+            self.save_artifacts("confirm_modal_not_shown")
+            # do not raise here; caller will assert visibility if needed
 
+    @allure.step("Confirm modal: click Yes")
+    def confirm_modal_yes(self) -> None:
+        self.click(self.CONFIRM_YES)
+
+    @allure.step("Is confirmation modal visible")
     def is_confirmation_modal_visible(self, timeout: float = 5.0) -> bool:
         try:
             self.wait_visible(self.CONFIRM_MODAL, timeout=timeout)
             return True
         except Exception:
-            return True
+            # try alternative: presence of confirm yes button
+            try:
+                self.find(self.CONFIRM_YES, timeout=timeout)
+                return True
+            except Exception:
+                return False

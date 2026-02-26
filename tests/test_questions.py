@@ -10,19 +10,12 @@ class TestQuestions:
         main = MainPage(driver)
         main.open_main()
 
-        try:
-            main.accept_cookies()
-        except Exception:
-            pass
+        main.accept_cookies()
 
-        #
-        main.wait_visible(MainPage.QUESTIONS_SECTION, timeout=5)
+        main.open_questions_section(timeout=6)
 
         page = QuestionsPage(driver)
         page.open_question_by_index(index)
 
         answer = page.get_answer_text_by_index(index)
-        
-        if not answer or not answer.strip():
-            page.save_artifacts(f"question_{index}_failure")
         assert answer and answer.strip() != "", f"Answer for question {index} should not be empty"

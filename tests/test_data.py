@@ -1,4 +1,4 @@
-# tests/test_data.py
+# data/test_data.py
 order_data = [
     {
         "name": "Иван",

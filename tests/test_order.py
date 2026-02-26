@@ -1,7 +1,8 @@
+# tests/test_order.py
 import pytest
 from pages.main_page import MainPage
 from pages.order_page import OrderPage
-from tests.test_data import order_data
+from data.test_data import order_data
 
 @pytest.mark.usefixtures("driver")
 class TestOrder:
@@ -29,4 +30,4 @@ class TestOrder:
         order.fill_comment(data["comment"])
 
         order.submit_order()
-        assert order.is_confirmation_modal_visible(timeout=2), "Ожидалась модалка подтверждения (проверка финального текста выполнена в submit_order)"
+        assert order.is_confirmation_modal_visible(timeout=5), "Ожидалась модалка подтверждения (проверка финального текста выполнена в submit_order)"
