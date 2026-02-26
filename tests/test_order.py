@@ -14,6 +14,7 @@ class TestOrder:
 
         main.accept_cookies()
 
+        
         getattr(main, entry_action)()
 
         order = OrderPage(driver)

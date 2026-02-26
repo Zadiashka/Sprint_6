@@ -31,12 +31,10 @@ class TestSmoke:
 
         # wait for new window or url change
         deadline = time.time() + 10
-        switched = False
         while time.time() < deadline:
             handles = driver.window_handles
             if len(handles) > 1:
                 driver.switch_to.window(handles[-1])
-                switched = True
                 break
             try:
                 cur = driver.current_url or ""
@@ -62,7 +60,6 @@ class TestSmoke:
         # fallback: if still about:blank or not expected, open href directly
         if ("dzen.ru" not in cur_url and "yandex" not in cur_url and href):
             driver.get(href)
-            # wait again
             main.wait_for(lambda d: "dzen.ru" in d.current_url.lower() or "yandex" in d.current_url.lower() or "zen.yandex" in d.current_url.lower(), timeout=8)
             cur_url = driver.current_url.lower()
 

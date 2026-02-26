@@ -3,6 +3,15 @@ import pytest
 from pages.main_page import MainPage
 from pages.questions_page import QuestionsPage
 
+EXPECTED_ANSWERS = [
+    "Сутки — 400 рублей. Оплата курьеру — наличными или картой.",
+    "Пока что у нас так: один заказ — один самокат. Если хотите покататься с друзьями, можете просто сделать несколько заказов — один за другим.",
+    "Допустим, вы оформляете заказ на 8 мая. Мы привозим самокат 8 мая в течение дня. Отсчёт времени аренды начинается с момента, когда вы оплатите заказ курьеру. Если мы привезли самокат 8 мая в 20:30, суточная аренда закончится 9 мая в 20:30.",
+    "Только начиная с завтрашнего дня. Но скоро станем расторопнее.",
+    "Пока что нет! Но если что-то срочное — всегда можно позвонить в поддержку по красивому номеру 1010.",
+    "Самокат приезжает к вам с полной зарядкой. Этого хватает на восемь суток — даже если будете кататься без передышек и во сне. Зарядка не понадобится."
+]
+
 @pytest.mark.usefixtures("driver")
 class TestQuestions:
     @pytest.mark.parametrize("index", [0, 1, 2, 3, 4, 5])
@@ -17,5 +26,13 @@ class TestQuestions:
         page = QuestionsPage(driver)
         page.open_question_by_index(index)
 
-        answer = page.get_answer_text_by_index(index)
-        assert answer and answer.strip() != "", f"Answer for question {index} should not be empty"
+        answer = page.get_answer_text_by_index(index) or ""
+        normalized = " ".join(answer.split()).strip()
+
+        expected = EXPECTED_ANSWERS[index]
+        expected_normalized = " ".join(expected.split()).strip()
+
+        assert normalized == expected_normalized, (
+            f"Answer for question {index} does not match expected.\n"
+            f"Expected: {expected_normalized!r}\nGot:      {normalized!r}"
+        )
