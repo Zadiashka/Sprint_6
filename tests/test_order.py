@@ -1,4 +1,3 @@
-# tests/test_order.py
 import pytest
 from pages.main_page import MainPage
 from pages.order_page import OrderPage
@@ -11,12 +10,9 @@ class TestOrder:
     def test_create_order(self, driver, data, entry_action):
         main = MainPage(driver)
         main.open_main()
-        try:
-            main.accept_cookies()
-        except Exception:
-            pass
 
-        #
+        main.accept_cookies()
+
         getattr(main, entry_action)()
 
         order = OrderPage(driver)
@@ -27,12 +23,10 @@ class TestOrder:
         order.fill_phone(data["phone"])
         order.click_next()
 
-        
         order.set_date(data.get("date_day", 23))
         order.choose_rental_days(data["rental_days"])
         order.choose_color(data["color"])
         order.fill_comment(data["comment"])
 
-        
         order.submit_order()
-        assert order.is_confirmation_modal_visible(timeout=2) or True, "Ожидалась модалка подтверждения (проверка финального текста выполнена в submit_order)"
+        assert order.is_confirmation_modal_visible(timeout=2), "Ожидалась модалка подтверждения (проверка финального текста выполнена в submit_order)"

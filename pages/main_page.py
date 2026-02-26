@@ -1,9 +1,10 @@
-
+from typing import Optional
 from selenium.webdriver.common.by import By
 from .base_page import BasePage
 
+
 class MainPage(BasePage):
-    URL = "https://qa-scooter.praktikum-services.ru"
+    URL: str = "https://qa-scooter.praktikum-services.ru"
 
     TOP_ORDER = (By.CSS_SELECTOR, "div.Header_Nav__AGCXC > button.Button_Button__ra12g")
     BOTTOM_ORDER = (By.CSS_SELECTOR, "div.Home_FinishButton__1_cWm > button")
@@ -12,20 +13,45 @@ class MainPage(BasePage):
     LOGO_YANDEX = (By.CSS_SELECTOR, "div.Header_Logo__23yGT a.Header_LogoYandex__3TSOI")
 
     def open_main(self) -> None:
+        """Открыть главную страницу и убедиться, что логотип Yandex видим."""
         self.open(self.URL)
-        self.find(self.LOGO_YANDEX)
+        self.wait_visible(self.LOGO_YANDEX, timeout=6)
 
     def click_top_order(self) -> None:
+        """Нажать кнопку заказа в шапке."""
         self.click(self.TOP_ORDER)
 
     def click_bottom_order(self) -> None:
-        self.click(self.BOTTOM_ORDER)
-
-    def accept_cookies(self) -> None:
+        """Нажать кнопку заказа внизу страницы; скроллим к элементу перед кликом."""
         try:
-            self.click(self.COOKIE_BUTTON)
+            el = self.find(self.BOTTOM_ORDER, timeout=3)
+            try:
+                self.scroll_into_view(el)
+            except Exception:
+                try:
+                    self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+                except Exception:
+                    pass
+            self.click_element(el)
         except Exception:
-            pass
+            
+            try:
+                self.click(self.BOTTOM_ORDER)
+            except Exception:
+                raise
 
-    def open_questions_section(self) -> None:
-        self.wait_visible(self.QUESTIONS_SECTION, timeout=6)
+    def accept_cookies(self, timeout: Optional[float] = 3.0) -> None:
+        """Принять куки, если кнопка доступна. Бросает исключение при реальной ошибке."""
+        self.wait_visible(self.COOKIE_BUTTON, timeout=timeout)
+        self.click(self.COOKIE_BUTTON)
+
+    def open_questions_section(self, timeout: float = 6.0) -> None:
+        """Дождаться и прокрутить до секции вопросов."""
+        el = self.wait_visible(self.QUESTIONS_SECTION, timeout=timeout)
+        try:
+            self.scroll_into_view(el)
+        except Exception:
+            try:
+                self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+            except Exception:
+                pass
