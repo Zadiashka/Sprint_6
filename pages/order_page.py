@@ -39,38 +39,25 @@ class OrderPage(BasePage):
 
     @allure.step("Select metro: {metro}")
     def select_metro(self, metro: str, timeout: float = 10.0) -> None:
-        if not metro:
-            raise ValueError("metro must be provided")
+        
         input_el = self.find(self.METRO_INPUT, timeout=4)
         self.click_element(input_el)
-        try:
-            input_el.clear()
-        except Exception:
-            pass
+        input_el.clear()
         input_el.send_keys(metro)
-        def _options_present(d):
+
+        def _find_option(d):
             opts = d.find_elements(*self.METRO_OPTIONS)
-            return opts if opts else False
-        opts = self.wait_for(_options_present, timeout=timeout)
-        chosen = None
-        for opt in opts:
-            txt = (opt.text or "").strip()
-            if txt and txt.lower() == metro.lower():
-                chosen = opt
-                break
-        if not chosen:
             for opt in opts:
-                txt = (opt.text or "").strip()
-                if txt and metro.lower() in txt.lower():
-                    chosen = opt
-                    break
-        if not chosen:
-            chosen = opts[0]
-        # ensure visible and clickable
-        try:
-            self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", chosen)
-        except Exception:
-            pass
+                txt = (opt.text or "").strip().lower()
+                if txt == metro.lower():
+                    return opt
+            for opt in opts:
+                txt = (opt.text or "").strip().lower()
+                if metro.lower() in txt:
+                    return opt
+            return False
+
+        chosen = self.wait_for(_find_option, timeout=timeout)
         self.click_element(chosen)
 
     @allure.step("Fill phone: {phone}")
@@ -90,13 +77,9 @@ class OrderPage(BasePage):
 
     @allure.step("Set date by clicking day {day}")
     def set_date_by_click(self, day: int, timeout: float = 8.0) -> None:
-        try:
-            date_field = self.find(self.DATE_INPUT, timeout=3)
-            self.click_element(date_field)
-        except Exception:
-            def _picker_present(d):
-                return d.find_elements(*self.DATE_PICKER_CONTAINER) or False
-            self.wait_for(_picker_present, timeout=2)
+        date_field = self.find(self.DATE_INPUT, timeout=3)
+        self.click_element(date_field)
+
         def _find_and_click(d):
             for sel in self.DATE_DAY_SELECTORS:
                 elems = d.find_elements(By.CSS_SELECTOR, sel)
@@ -106,25 +89,16 @@ class OrderPage(BasePage):
                     if not txt:
                         continue
                     if txt == str(int(day)) and "disabled" not in cls and "outside" not in cls and "react-datepicker__day--outside-month" not in cls:
-                        try:
-                            d.execute_script("arguments[0].scrollIntoView({block:'center'});", e)
-                        except Exception:
-                            pass
+                        d.execute_script("arguments[0].scrollIntoView({block:'center'});", e)
                         try:
                             e.click()
                             return True
                         except Exception:
-                            try:
-                                d.execute_script("arguments[0].click();", e)
-                                return True
-                            except Exception:
-                                continue
+                            d.execute_script("arguments[0].click();", e)
+                            return True
             return False
-        try:
-            self.wait_for(_find_and_click, timeout=timeout)
-        except Exception:
-            self.save_artifacts("date_click_failure")
-            raise TimeoutException(f"Не удалось выбрать дату кликом: {day}")
+
+        self.wait_for(_find_and_click, timeout=timeout)
 
     @allure.step("Set date {day}")
     def set_date(self, day: int, timeout: float = 8.0) -> None:
@@ -138,8 +112,7 @@ class OrderPage(BasePage):
             if opt.text.strip().lower() == days_text.strip().lower():
                 self.click_element(opt)
                 return
-        if options:
-            self.click_element(options[0])
+        self.click_element(options[0])
 
     @allure.step("Choose color: {color_text}")
     def choose_color(self, color_text: str) -> None:
@@ -148,8 +121,7 @@ class OrderPage(BasePage):
             if color_text.lower() in lbl.text.lower():
                 self.click_element(lbl)
                 return
-        if labels:
-            self.click_element(labels[0])
+        self.click_element(labels[0])
 
     @allure.step("Fill comment")
     def fill_comment(self, comment: str) -> None:
@@ -158,25 +130,19 @@ class OrderPage(BasePage):
 
     @allure.step("Submit order (open confirm modal)")
     def submit_order(self) -> None:
-        # click order button and wait for confirmation modal or confirm button
         self.click(self.ORDER_BUTTON)
+
         def _confirm_present(d):
             if d.find_elements(*self.CONFIRM_MODAL):
                 return True
             if d.find_elements(*self.CONFIRM_YES):
                 return True
-            try:
-                els = d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
-                if els:
-                    return True
-            except Exception:
-                pass
+            els = d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
+            if els:
+                return True
             return False
-        try:
-            self.wait_for(_confirm_present, timeout=6)
-        except Exception:
-            self.save_artifacts("confirm_modal_not_shown")
-            # do not raise here; caller will assert visibility if needed
+
+        self.wait_for(_confirm_present, timeout=6)
 
     @allure.step("Confirm modal: click Yes")
     def confirm_modal_yes(self) -> None:
@@ -188,7 +154,6 @@ class OrderPage(BasePage):
             self.wait_visible(self.CONFIRM_MODAL, timeout=timeout)
             return True
         except Exception:
-            # try alternative: presence of confirm yes button
             try:
                 self.find(self.CONFIRM_YES, timeout=timeout)
                 return True

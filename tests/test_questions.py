@@ -1,5 +1,6 @@
 # tests/test_questions.py
 import pytest
+import allure
 from pages.main_page import MainPage
 from pages.questions_page import QuestionsPage
 
@@ -14,25 +15,17 @@ EXPECTED_ANSWERS = [
 
 @pytest.mark.usefixtures("driver")
 class TestQuestions:
+    @allure.title("FAQ question opens and shows correct answer")
     @pytest.mark.parametrize("index", [0, 1, 2, 3, 4, 5])
     def test_question_opens(self, driver, index):
         main = MainPage(driver)
         main.open_main()
-
         main.accept_cookies()
-
         main.open_questions_section(timeout=6)
-
         page = QuestionsPage(driver)
         page.open_question_by_index(index)
-
         answer = page.get_answer_text_by_index(index) or ""
         normalized = " ".join(answer.split()).strip()
-
         expected = EXPECTED_ANSWERS[index]
         expected_normalized = " ".join(expected.split()).strip()
-
-        assert normalized == expected_normalized, (
-            f"Answer for question {index} does not match expected.\n"
-            f"Expected: {expected_normalized!r}\nGot:      {normalized!r}"
-        )
+        assert normalized == expected_normalized
