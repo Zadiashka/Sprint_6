@@ -10,9 +10,7 @@ venv/
 # Pytest
 .cache/
 
-# Allure
-allure-results/
-allure-report/
+
 
 # IDEs
 .vscode/
