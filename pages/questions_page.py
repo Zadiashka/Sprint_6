@@ -1,37 +1,30 @@
 # pages/questions_page.py
-import allure
-from typing import List
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from .base_page import BasePage
 
 class QuestionsPage(BasePage):
-    QUESTION = (By.XPATH, "//div[contains(@id, 'accordion__heading-')]")
-    ANSWER = (By.XPATH, "//div[contains(@id, 'accordion__panel-')]//p")
-    QUESTIONS_SECTION = (By.CSS_SELECTOR, "div.Home_FAQ__3uVm4")
+    QUESTIONS = (By.CSS_SELECTOR, "div.Home_FAQ__3uVm4 .accordion__item")
+    QUESTION_TOGGLE = (By.CSS_SELECTOR, ".accordion__heading")
+    ANSWER_PANEL = (By.CSS_SELECTOR, ".accordion__panel")
 
-    def _collect_questions(self) -> List[WebElement]:
-        return self.find_all(self.QUESTION, timeout=5)
-
-    def _collect_answers(self) -> List[WebElement]:
-        return self.find_all(self.ANSWER, timeout=5)
-
-    @allure.step("Open question by index {index}")
     def open_question_by_index(self, index: int) -> None:
-        questions = self._collect_questions()
+        questions = self.find_all(self.QUESTIONS, timeout=5)
         if index < 0 or index >= len(questions):
             raise IndexError("Question index out of range")
         q = questions[index]
-        self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", q)
-        self.click_element(q)
-        def _answer_visible(d):
-            answers = d.find_elements(*self.ANSWER)
-            return len(answers) > index and (answers[index].text or "").strip() != ""
-        self.wait_for(_answer_visible, timeout=6)
+        self.scroll_into_view(q)
+        toggle = q.find_element(*self.QUESTION_TOGGLE)
+        self.click_element(toggle)
+        WebDriverWait(self._driver, 5).until(
+            lambda d: q.find_elements(*self.ANSWER_PANEL)
+        )
 
-    @allure.step("Get answer text by index {index}")
     def get_answer_text_by_index(self, index: int) -> str:
-        answers = self._collect_answers()
-        if index < 0 or index >= len(answers):
-            raise IndexError("Answer index out of range")
-        return (answers[index].text or "").strip()
+        questions = self.find_all(self.QUESTIONS, timeout=5)
+        if index < 0 or index >= len(questions):
+            raise IndexError("Question index out of range")
+        panel = questions[index].find_element(*self.ANSWER_PANEL)
+        raw = panel.text or ""
+        return " ".join(raw.split()).strip()

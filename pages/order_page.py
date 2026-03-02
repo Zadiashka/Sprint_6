@@ -1,29 +1,34 @@
 # pages/order_page.py
 import allure
-from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from .base_page import BasePage
 
 class OrderPage(BasePage):
+    # --- Страница 1: Для кого самокат ---
     NAME = (By.CSS_SELECTOR, "input[placeholder='* Имя']")
-    SURNAME = (By.CSS_SELECTOR, "input[placeholder='* Фамилия'], input[name='surname']")
+    SURNAME = (By.CSS_SELECTOR, "input[placeholder='* Фамилия']")
     ADDRESS = (By.CSS_SELECTOR, "input[placeholder='* Адрес: куда привезти заказ']")
-    METRO_INPUT = (By.CSS_SELECTOR, "div.select-search__value input.select-search__input, input[placeholder='* Станция метро'], input[name='metro']")
-    METRO_OPTIONS = (By.CSS_SELECTOR, ".select-search__option, ul.select-search__options li, .select-search li")
+    METRO_INPUT = (By.CSS_SELECTOR, "input.select-search__input")
+    METRO_OPTIONS = (By.CSS_SELECTOR, ".select-search__option")
     PHONE = (By.CSS_SELECTOR, "input[placeholder='* Телефон: на него позвонит курьер']")
-    NEXT_BUTTON = (By.CSS_SELECTOR, "button.Button_Button__ra12g.Button_Middle__1CSJM, button.Button_Middle__1CSJM")
-    DATE_INPUT = (By.CSS_SELECTOR, "input[placeholder='* Когда привезти самокат'], input[name='date'], input[type='date']")
-    DATE_PICKER_CONTAINER = (By.CSS_SELECTOR, ".react-datepicker, .DatePicker, .Calendar")
-    DATE_DAY_SELECTORS = [".react-datepicker__day", ".DatePicker-day", ".calendar-day", ".datepicker-day"]
-    RENT_TERM_DROPDOWN = (By.CSS_SELECTOR, ".Dropdown-root, .Dropdown-control, .Dropdown")
-    RENT_TERM_OPTION = (By.CSS_SELECTOR, ".Dropdown-menu div, .Dropdown-option")
-    COLOR_CHECKBOXES = (By.CSS_SELECTOR, "div.Order_Checkboxes__3lWSI label")
-    COMMENT_INPUT = (By.CSS_SELECTOR, "input[placeholder='Комментарий для курьера'], textarea[placeholder='Комментарий для курьера']")
-    ORDER_BUTTON = (By.CSS_SELECTOR, "button.Button_Button__ra12g.Button_Middle__1CSJM, button.Button_Middle__1CSJM")
-    CONFIRM_MODAL = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3, .Order_Modal__title, .Order_ModalHeader__3FDaJ")
-    CONFIRM_YES = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 button:nth-child(2), button.Button_Button__ra12g.Button_Middle__1CSJM")
-    ORDER_SUCCESS_TEXT = (By.CSS_SELECTOR, ".Order_ModalHeader__3FDaJ, .Order_Modal__title, .Order_ModalHeader")
+    NEXT_BUTTON = (By.CSS_SELECTOR, "div.Order_NextButton__1_rCA > button")
+
+    # --- Страница 2: Про аренду ---
+    DATE_INPUT = (By.CSS_SELECTOR, "div.Order_MixedDatePicker__3qiay input")
+    RENT_TERM_DROPDOWN = (By.CSS_SELECTOR, "div.Dropdown-root")
+    RENT_TERM_OPTION = (By.CSS_SELECTOR, "div.Dropdown-menu .Dropdown-option")
+    COLOR_BLACK = (By.CSS_SELECTOR, "div.Order_Checkboxes__3lWSI > label:nth-child(2)")
+    COLOR_GREY = (By.CSS_SELECTOR, "div.Order_Checkboxes__3lWSI > label:nth-child(4)")
+    COMMENT_INPUT = (By.CSS_SELECTOR, "input[placeholder='Комментарий для курьера']")
+    ORDER_BUTTON = (By.CSS_SELECTOR, "div.Order_Content__bmtHS > div.Order_Buttons__1xGrp > button:nth-child(2)")
+
+    # --- Модальное окно подтверждения ---
+    CONFIRM_MODAL = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3")
+    CONFIRM_MODAL_HEADER = (By.CSS_SELECTOR, "div.Order_ModalHeader__3FDaJ")
+    CONFIRM_YES = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 > div.Order_Buttons__1xGrp > button:nth-child(2)")
+    CONFIRM_NO = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 > div.Order_Buttons__1xGrp > button:nth-child(1)")
+    ORDER_SUCCESS_TEXT = (By.CSS_SELECTOR, "div.Order_ModalHeader__3FDaJ")
 
     @allure.step("Fill name: {name}")
     def fill_name(self, name: str) -> None:
@@ -46,28 +51,12 @@ class OrderPage(BasePage):
 
         chosen = self.wait_for(
             lambda d: next(
-                (
-                    opt
-                    for opt in d.find_elements(*self.METRO_OPTIONS)
-                    if (opt.text or "").strip().lower() == metro.lower()
-                ),
+                (opt for opt in d.find_elements(*self.METRO_OPTIONS)
+                 if metro.lower() in (opt.text or "").strip().lower()),
                 False
             ),
             timeout=timeout
         )
-
-        if not chosen:
-            chosen = self.wait_for(
-                lambda d: next(
-                    (
-                        opt
-                        for opt in d.find_elements(*self.METRO_OPTIONS)
-                        if metro.lower() in (opt.text or "").strip().lower()
-                    ),
-                    False
-                ),
-                timeout=timeout
-            )
 
         self.click_element(chosen)
 
@@ -78,34 +67,29 @@ class OrderPage(BasePage):
     @allure.step("Click next")
     def click_next(self) -> None:
         self.click(self.NEXT_BUTTON)
-        self.wait_for(lambda d: bool(d.find_elements(*self.DATE_INPUT) or d.find_elements(*self.DATE_PICKER_CONTAINER)), timeout=8)
+        self.wait_for(
+            lambda d: bool(d.find_elements(*self.DATE_INPUT)),
+            timeout=8
+        )
 
     @allure.step("Set date by clicking day {day}")
-    def set_date_by_click(self, day: int, timeout: float = 8.0) -> None:
+    def set_date(self, day: int, timeout: float = 8.0) -> None:
         date_field = self.find(self.DATE_INPUT, timeout=3)
         self.click_element(date_field)
 
         chosen = self.wait_for(
             lambda d: next(
                 (
-                    e
-                    for sel in self.DATE_DAY_SELECTORS
-                    for e in d.find_elements(By.CSS_SELECTOR, sel)
-                    if (e.text or "").strip() == str(int(day))
+                    e for e in d.find_elements(By.CSS_SELECTOR, ".react-datepicker__day")
+                    if (e.text or "").strip() == str(day)
+                    and "outside-month" not in (e.get_attribute("class") or "")
                     and "disabled" not in (e.get_attribute("class") or "")
-                    and "outside" not in (e.get_attribute("class") or "")
-                    and "react-datepicker__day--outside-month" not in (e.get_attribute("class") or "")
                 ),
                 False
             ),
             timeout=timeout
         )
-
         self.click_element(chosen)
-
-    @allure.step("Set date {day}")
-    def set_date(self, day: int, timeout: float = 8.0) -> None:
-        self.set_date_by_click(day, timeout=timeout)
 
     @allure.step("Choose rental days: {days_text}")
     def choose_rental_days(self, days_text: str) -> None:
@@ -119,12 +103,10 @@ class OrderPage(BasePage):
 
     @allure.step("Choose color: {color_text}")
     def choose_color(self, color_text: str) -> None:
-        labels = self.find_all(self.COLOR_CHECKBOXES, timeout=3)
-        for lbl in labels:
-            if color_text.lower() in lbl.text.lower():
-                self.click_element(lbl)
-                return
-        self.click_element(labels[0])
+        if "чёрн" in color_text.lower() or "черн" in color_text.lower():
+            self.click(self.COLOR_BLACK)
+        else:
+            self.click(self.COLOR_GREY)
 
     @allure.step("Fill comment")
     def fill_comment(self, comment: str) -> None:
@@ -134,14 +116,7 @@ class OrderPage(BasePage):
     @allure.step("Submit order (open confirm modal)")
     def submit_order(self) -> None:
         self.click(self.ORDER_BUTTON)
-        self.wait_for(
-            lambda d: bool(
-                d.find_elements(*self.CONFIRM_MODAL)
-                or d.find_elements(*self.CONFIRM_YES)
-                or d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
-            ),
-            timeout=6
-        )
+        self.wait_visible(self.CONFIRM_MODAL_HEADER, timeout=8)
 
     @allure.step("Confirm modal: click Yes")
     def confirm_modal_yes(self) -> None:
@@ -153,8 +128,12 @@ class OrderPage(BasePage):
             self.wait_visible(self.CONFIRM_MODAL, timeout=timeout)
             return True
         except TimeoutException:
-            try:
-                self.find(self.CONFIRM_YES, timeout=timeout)
-                return True
-            except TimeoutException:
-                return False
+            return False
+
+    @allure.step("Is order successful")
+    def is_order_successful(self, timeout: float = 5.0) -> bool:
+        try:
+            self.wait_visible(self.ORDER_SUCCESS_TEXT, timeout=timeout)
+            return True
+        except TimeoutException:
+            return False
