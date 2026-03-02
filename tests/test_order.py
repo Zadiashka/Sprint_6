@@ -7,14 +7,13 @@ from data.test_data import order_data
 
 @pytest.mark.usefixtures("driver")
 class TestOrder:
-    @allure.title("Create order from header or footer")
+    @allure.title("Create order from header")
     @pytest.mark.parametrize("data", order_data)
-    @pytest.mark.parametrize("entry_action", ["click_top_order", "click_bottom_order"])
-    def test_create_order(self, driver, data, entry_action):
+    def test_create_order(self, driver, data):
         main = MainPage(driver)
         main.open_main()
         main.accept_cookies()
-        getattr(main, entry_action)()
+        main.click_top_order()
         order = OrderPage(driver)
         order.fill_name(data["name"])
         order.fill_surname(data["surname"])

@@ -1,6 +1,6 @@
 # pages/order_page.py
 import allure
-from typing import Optional, List
+from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from .base_page import BasePage
@@ -39,25 +39,36 @@ class OrderPage(BasePage):
 
     @allure.step("Select metro: {metro}")
     def select_metro(self, metro: str, timeout: float = 10.0) -> None:
-        
         input_el = self.find(self.METRO_INPUT, timeout=4)
         self.click_element(input_el)
         input_el.clear()
         input_el.send_keys(metro)
 
-        def _find_option(d):
-            opts = d.find_elements(*self.METRO_OPTIONS)
-            for opt in opts:
-                txt = (opt.text or "").strip().lower()
-                if txt == metro.lower():
-                    return opt
-            for opt in opts:
-                txt = (opt.text or "").strip().lower()
-                if metro.lower() in txt:
-                    return opt
-            return False
+        chosen = self.wait_for(
+            lambda d: next(
+                (
+                    opt
+                    for opt in d.find_elements(*self.METRO_OPTIONS)
+                    if (opt.text or "").strip().lower() == metro.lower()
+                ),
+                False
+            ),
+            timeout=timeout
+        )
 
-        chosen = self.wait_for(_find_option, timeout=timeout)
+        if not chosen:
+            chosen = self.wait_for(
+                lambda d: next(
+                    (
+                        opt
+                        for opt in d.find_elements(*self.METRO_OPTIONS)
+                        if metro.lower() in (opt.text or "").strip().lower()
+                    ),
+                    False
+                ),
+                timeout=timeout
+            )
+
         self.click_element(chosen)
 
     @allure.step("Fill phone: {phone}")
@@ -67,38 +78,30 @@ class OrderPage(BasePage):
     @allure.step("Click next")
     def click_next(self) -> None:
         self.click(self.NEXT_BUTTON)
-        def _date_ready(d):
-            if d.find_elements(*self.DATE_INPUT):
-                return True
-            if d.find_elements(*self.DATE_PICKER_CONTAINER):
-                return True
-            return False
-        self.wait_for(_date_ready, timeout=8)
+        self.wait_for(lambda d: bool(d.find_elements(*self.DATE_INPUT) or d.find_elements(*self.DATE_PICKER_CONTAINER)), timeout=8)
 
     @allure.step("Set date by clicking day {day}")
     def set_date_by_click(self, day: int, timeout: float = 8.0) -> None:
         date_field = self.find(self.DATE_INPUT, timeout=3)
         self.click_element(date_field)
 
-        def _find_and_click(d):
-            for sel in self.DATE_DAY_SELECTORS:
-                elems = d.find_elements(By.CSS_SELECTOR, sel)
-                for e in elems:
-                    txt = (e.text or "").strip()
-                    cls = (e.get_attribute("class") or "")
-                    if not txt:
-                        continue
-                    if txt == str(int(day)) and "disabled" not in cls and "outside" not in cls and "react-datepicker__day--outside-month" not in cls:
-                        d.execute_script("arguments[0].scrollIntoView({block:'center'});", e)
-                        try:
-                            e.click()
-                            return True
-                        except Exception:
-                            d.execute_script("arguments[0].click();", e)
-                            return True
-            return False
+        chosen = self.wait_for(
+            lambda d: next(
+                (
+                    e
+                    for sel in self.DATE_DAY_SELECTORS
+                    for e in d.find_elements(By.CSS_SELECTOR, sel)
+                    if (e.text or "").strip() == str(int(day))
+                    and "disabled" not in (e.get_attribute("class") or "")
+                    and "outside" not in (e.get_attribute("class") or "")
+                    and "react-datepicker__day--outside-month" not in (e.get_attribute("class") or "")
+                ),
+                False
+            ),
+            timeout=timeout
+        )
 
-        self.wait_for(_find_and_click, timeout=timeout)
+        self.click_element(chosen)
 
     @allure.step("Set date {day}")
     def set_date(self, day: int, timeout: float = 8.0) -> None:
@@ -131,18 +134,14 @@ class OrderPage(BasePage):
     @allure.step("Submit order (open confirm modal)")
     def submit_order(self) -> None:
         self.click(self.ORDER_BUTTON)
-
-        def _confirm_present(d):
-            if d.find_elements(*self.CONFIRM_MODAL):
-                return True
-            if d.find_elements(*self.CONFIRM_YES):
-                return True
-            els = d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
-            if els:
-                return True
-            return False
-
-        self.wait_for(_confirm_present, timeout=6)
+        self.wait_for(
+            lambda d: bool(
+                d.find_elements(*self.CONFIRM_MODAL)
+                or d.find_elements(*self.CONFIRM_YES)
+                or d.find_elements(By.XPATH, "//div[contains(text(),'Хотите оформить заказ') or contains(text(),'Хотите оформить')]")
+            ),
+            timeout=6
+        )
 
     @allure.step("Confirm modal: click Yes")
     def confirm_modal_yes(self) -> None:
@@ -153,9 +152,9 @@ class OrderPage(BasePage):
         try:
             self.wait_visible(self.CONFIRM_MODAL, timeout=timeout)
             return True
-        except Exception:
+        except TimeoutException:
             try:
                 self.find(self.CONFIRM_YES, timeout=timeout)
                 return True
-            except Exception:
+            except TimeoutException:
                 return False

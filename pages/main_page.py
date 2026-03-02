@@ -26,12 +26,7 @@ class MainPage(BasePage):
 
     @allure.step("Click bottom order button")
     def click_bottom_order(self) -> None:
-        el = self.find(self.BOTTOM_ORDER, timeout=5)
-        try:
-            self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
-        except Exception:
-            pass
-        self.click_element(el)
+        self.click(self.BOTTOM_ORDER)
 
     @allure.step("Accept cookies")
     def accept_cookies(self, timeout: Optional[float] = 3.0) -> None:
@@ -41,7 +36,4 @@ class MainPage(BasePage):
     @allure.step("Open questions section")
     def open_questions_section(self, timeout: float = 6.0) -> None:
         el = self.wait_visible(self.QUESTIONS_SECTION, timeout=timeout)
-        try:
-            self._driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
-        except Exception:
-            pass
+        self.scroll_into_view(el)

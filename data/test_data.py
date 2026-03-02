@@ -4,7 +4,7 @@ order_data = [
         "name": "Мария",
         "surname": "Петрова",
         "address": "ул. Ленина, 10",
-        "metro": "Твер",
+        "metro": "Тверская",
         "phone": "+79991234567",
         "date_day": 23,
         "rental_days": "сутки",
