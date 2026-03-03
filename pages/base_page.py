@@ -52,3 +52,12 @@ class BasePage:
             except Exception:
                 pass
         el.send_keys(text)
+
+    def get_current_url(self) -> str:
+        return self._driver.current_url
+
+    def get_window_handles(self) -> list:
+        return self._driver.window_handles
+
+    def switch_to_window(self, handle: str) -> None:
+        self._driver.switch_to.window(handle)

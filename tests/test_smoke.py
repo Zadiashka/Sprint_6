@@ -12,8 +12,8 @@ class TestSmoke:
         main.open_main()
         main.accept_cookies()
         main.click(MainPage.LOGO_SCOOTER)
-        main.wait_for(lambda d: BASE_URL in (d.current_url or ""), timeout=6)
-        assert BASE_URL in (driver.current_url or "")
+        main.wait_for(lambda d: BASE_URL in (main.get_current_url() or ""), timeout=6)
+        assert BASE_URL in main.get_current_url()
 
     @allure.title("Yandex logo opens Dzen in new window")
     def test_yandex_logo_opens_dzen(self, driver):
@@ -22,7 +22,7 @@ class TestSmoke:
         main.accept_cookies()
         yel = main.find(MainPage.LOGO_YANDEX, timeout=5)
         main.click_element(yel)
-        main.wait_for(lambda d: len(d.window_handles) > 1, timeout=8)
-        driver.switch_to.window(driver.window_handles[-1])
-        main.wait_for(lambda d: "dzen.ru" in (d.current_url or "").lower(), timeout=8)
-        assert "dzen.ru" in (driver.current_url or "").lower()
+        main.wait_for(lambda d: len(main.get_window_handles()) > 1, timeout=8)
+        main.switch_to_window(main.get_window_handles()[-1])
+        main.wait_for(lambda d: "dzen.ru" in main.get_current_url().lower(), timeout=8)
+        assert "dzen.ru" in main.get_current_url().lower()

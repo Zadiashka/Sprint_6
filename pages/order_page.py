@@ -5,7 +5,6 @@ from selenium.common.exceptions import TimeoutException
 from .base_page import BasePage
 
 class OrderPage(BasePage):
-    # --- Страница 1: Для кого самокат ---
     NAME = (By.CSS_SELECTOR, "input[placeholder='* Имя']")
     SURNAME = (By.CSS_SELECTOR, "input[placeholder='* Фамилия']")
     ADDRESS = (By.CSS_SELECTOR, "input[placeholder='* Адрес: куда привезти заказ']")
@@ -14,7 +13,6 @@ class OrderPage(BasePage):
     PHONE = (By.CSS_SELECTOR, "input[placeholder='* Телефон: на него позвонит курьер']")
     NEXT_BUTTON = (By.CSS_SELECTOR, "div.Order_NextButton__1_rCA > button")
 
-    # --- Страница 2: Про аренду ---
     DATE_INPUT = (By.CSS_SELECTOR, "div.Order_MixedDatePicker__3qiay input")
     RENT_TERM_DROPDOWN = (By.CSS_SELECTOR, "div.Dropdown-root")
     RENT_TERM_OPTION = (By.CSS_SELECTOR, "div.Dropdown-menu .Dropdown-option")
@@ -23,8 +21,7 @@ class OrderPage(BasePage):
     COMMENT_INPUT = (By.CSS_SELECTOR, "input[placeholder='Комментарий для курьера']")
     ORDER_BUTTON = (By.CSS_SELECTOR, "div.Order_Content__bmtHS > div.Order_Buttons__1xGrp > button:nth-child(2)")
 
-    # --- Модальное окно подтверждения ---
-    CONFIRM_MODAL = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3")
+    CONFIRM_MODAL = (By.XPATH, "//div[contains(@class,'Order_Modal__YZ-d3') and .//div[contains(text(),'Хотите оформить заказ')]]")
     CONFIRM_MODAL_HEADER = (By.CSS_SELECTOR, "div.Order_ModalHeader__3FDaJ")
     CONFIRM_YES = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 > div.Order_Buttons__1xGrp > button:nth-child(2)")
     CONFIRM_NO = (By.CSS_SELECTOR, "div.Order_Modal__YZ-d3 > div.Order_Buttons__1xGrp > button:nth-child(1)")
