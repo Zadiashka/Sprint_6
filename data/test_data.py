@@ -1,0 +1,15 @@
+# data/order_data.py
+order_data = [
+    {
+        "name": "Мария",
+        "surname": "Петрова",
+        "address": "ул. Ленина, 10",
+        "metro": "Тверская",
+        "phone": "+79991234567",
+        "date_day": 23,
+        "rental_days": "сутки",
+        "color": "чёрный",
+        "comment": "Пожалуйста, позвоните за 10 минут"
+    },
+    
+]
